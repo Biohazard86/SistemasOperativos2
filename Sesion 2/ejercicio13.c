@@ -30,7 +30,7 @@ archivos (consultar función “stat” y similares).
 // Main
 int main(int argc, char *argv[]){
 
-    int estado, i, num;
+    int estado, i, j, num;
     char numero[1];
     char datos[1024] = "Datos .txt";
     char prueba[1] = "A";
@@ -64,30 +64,41 @@ int main(int argc, char *argv[]){
             //fprintf(stdout, "NUMERO> %s\n", numero);
             //fprintf(stdout, "NUMERO> %d\n", num);
             //fprintf(stdout, "------------------------------\n");
+            
+            // Copiamos el primer agumento a la cadena directorio
             stpcpy(directorio, argv[1]);
-            //stpcpy(datos, directorio);
-            //fprintf(stdout, "DIR> %s\n", directorio);
-            //fprintf(stdout, "------------------------------\n");
             fprintf(stdout, "Se ha creado el directorio '%s' con exito\n", directorio);
-            // Comprobamos que el segundo parametro sea correcot
+            // Comprobamos que el segundo parametro sea correcto
+            // Si el numero introducido como segundo parametro esta entre 3 y 30 entonces >> 
             if((num >2) && (num <31)){
-                for(i=1; i<(num+1); i++){
+
+                //Con un for recorremos 
+                for(i=0; i<(num); i++){
                 // Creamos los archivos desde 0 hasta argv[2]
+                
+
+                // Limpiamos la cadena 
+                memset(directorio, 0, strlen(directorio));
+                stpcpy(directorio, argv[1]);
+                /*
+                for(j=0; j<(strlen(directorio)); j++){
+                    directorio[0] = void;
+                }
+                */
                 datos[5] = '0'+i;
                 strcat(directorio, datos);
-                //datos[5] = 'A'; 
+                 
                 //Protipo de la funcion para crear un archivo
                 // int creat(const char *pathname, mode_t mode);
                 
                 if((creat(directorio, O_CREAT)) == -1){
                     fprintf(stdout, "DIR> %s\n", directorio);
-                    fprintf(stderr, "ERROR al crear el archivo %s\n", datos);
+                    fprintf(stderr, "ERROR al crear el archivo %s en el directorio %s\n", datos, directorio);
                 }else{
+                    // Si no ha errores, imprimimos el mensaje de que se ha creado el arcvhivo
                     fprintf(stdout, "Se ha creado el archivo %s \n", datos);
-                    //fprintf(stdout, "DATOS>  %s\n", datos);
+                    
                 }
-
-
             }
 
             }else{
