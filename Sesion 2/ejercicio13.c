@@ -30,7 +30,8 @@ archivos (consultar función “stat” y similares).
 // Main
 int main(int argc, char *argv[]){
 
-    int estado;
+    int estado, i, num;
+    char numero[1];
 
     
     // Comprobamos que se introducen dos argumentos en la linea de ordenes
@@ -51,6 +52,22 @@ int main(int argc, char *argv[]){
         }
         else{
             fprintf(stdout, "Se ha creado el directorio '%s' con exito\n", argv[1]);
+
+            strcpy(numero, argv[2]);
+            num = atoi(numero);
+            // Comprobamos que el segundo parametro sea correcot
+            if((num >2) && (num <31)){
+                for(i=0; i<num; i++){
+                // Creamos los archivos desde 0 hasta argv[2]
+                fprintf(stdout, "Se ha creado el archivo %d\n", i);
+            }
+
+            }else{
+                fprintf(stderr, "Error en el segundo parametro. Saliendo\n");
+                exit -1;
+            }
+
+            
         }
 
 
