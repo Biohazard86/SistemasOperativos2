@@ -20,6 +20,9 @@ Realizar un programa que deberá admitir tres argumentos, el primero será el no
 
 */
 
+// LE QUEDA POR HACER LO DE LAS OPCIONES
+
+
 // Librerias usadas
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,17 +34,90 @@ Realizar un programa que deberá admitir tres argumentos, el primero será el no
 #include <ctype.h>
 #include <time.h>   // Para los numeros aleatorios
 
+// Copia A en B con un buffer de 1 o de 1024
+int cosa_que_hace_cosas(char archivo1[], char archivo2[], int numero){
+    char buff[numero];
+    int fd1, fd2;
+    int tam_leido = 1, tam_escrito, posicion_actual=0;
+    
+    fprintf(stdout, "%s se va a copiar en %s con tamanio de buffer de %d\n", archivo1, archivo2, numero);
+    
+    fd1 = open(archivo1, O_RDONLY);      // abrimos el archivo en modo lectura.
+    fd2 = open(archivo2, O_WRONLY);      // abrimos el archivo en modo lectura.
+    if((fchmod(fd2, 0777)) == -1){
+        fprintf(stderr, "Error al cambiar los permisos\n");
+    }
+    lseek( fd1, 0, SEEK_SET);
+    lseek( fd2, 0, SEEK_SET);
 
-int cosa_que_hace_cosas(char archivo1[], char archivo2[], int opcion){
+    do{
+        lseek(fd1,posicion_actual, SEEK_SET);
+        lseek(fd2,posicion_actual, SEEK_SET);
+        
+        tam_leido = (read(fd1, buff, numero));
+        if(tam_leido != numero){
+            exit (1);
+        }
 
+        tam_escrito = write(fd2, buff, numero);
+        if(numero != tam_escrito){
+            fprintf(stderr, "Error en la escritura\n");
+        }           
+        
+        posicion_actual = posicion_actual + numero;
+    }while(numero == tam_leido);
+
+    close(fd1);
+    close(fd2);
 }
 
+
+int cosa_que_hace_cosas_pero_del_reves(char archivo1[], char archivo2[], int numero){
+    char buff[numero];
+    int fd1, fd2;
+    int tam_leido = 1, tam_escrito, posicion_actual=0;
+    int posicion_final;
+    
+    fprintf(stdout, "%s se va a copiar en %s con tamanio de buffer de %d\n", archivo1, archivo2, numero);
+    
+    fd1 = open(archivo1, O_RDONLY);      // abrimos el archivo en modo lectura.
+    fd2 = open(archivo2, O_WRONLY);      // abrimos el archivo en modo lectura.
+    if((fchmod(fd2, 0777)) == -1){
+        fprintf(stderr, "Error al cambiar los permisos\n");
+    }
+    
+    posicion_final = lseek( fd1, 0, SEEK_END);
+    lseek( fd2, 0, SEEK_SET);
+
+    do{
+        //fprintf(stdout, "POSICION %d\n", posicion_final);
+        lseek(fd1,posicion_actual, SEEK_SET);
+        lseek(fd2,posicion_final, SEEK_SET);
+        
+        tam_leido = (read(fd1, buff, numero));
+        if(tam_leido != numero){
+            exit (1);
+        }
+        
+        tam_escrito = write(fd2, buff, numero);
+
+        if(numero != tam_escrito){
+            fprintf(stderr, "Error en la escritura\n");
+        }           
+        posicion_final = posicion_final - numero;
+        posicion_actual = posicion_actual + numero;
+    }while(numero == tam_leido);
+
+    close(fd1);
+    close(fd2);
+}
 
 // Main
 int main(int argc, char *argv[]){
     int fd1, fd2;     // File descriptor, vamos a guardar el descriptor del archivos que abrimos
     int i;
     char opcion[1];
+    
     
     if(argc != 4){
         // Si no son 4 parametros, salimos del programa
@@ -69,6 +145,23 @@ int main(int argc, char *argv[]){
             opcion[0] = toupper(opcion[0]);
             if((opcion[0] == 'A') || (opcion[0] == 'B') || (opcion[0] == 'C')){
                 fprintf(stdout, "Opcion introducida: %s\n", opcion);
+
+                if(opcion[0] == 'A'){
+                    // Vamos a leer caracter a caracter
+                    cosa_que_hace_cosas(argv[1], argv[2], 1);
+
+                }
+
+                if(opcion[0] == 'B'){
+                    // Vamos a leer blqoues de 1024
+                    cosa_que_hace_cosas(argv[1], argv[2], 1024);
+                }
+
+                if(opcion[0] == 'C'){
+                    // Vamos a leer blqoues de 1 del reves
+                    cosa_que_hace_cosas_pero_del_reves(argv[1], argv[2], 1);
+                }
+
             }
             else{
                 // Si la opcion no es correcta, salimos del programa con un mensaje de error

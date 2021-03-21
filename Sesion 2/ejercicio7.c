@@ -14,6 +14,8 @@ no del tamaño del archivo completo. Al acabar, deshará la proyección y cerrar
 
 */
 
+// NO FUNCIONA
+
 // Librerias usadas
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,7 +83,7 @@ int main(int argc, char *argv[]){
                 lseek( fd1, 0, SEEK_SET);
 
                 posicion_actual = 0;
-                while((tam_leido = read(fd1, buff, TAM_BUFF)) > 0){
+                while((tam_leido == read(fd1, buff, TAM_BUFF)) > 0){
                     
                     if((tam_leido < TAM_BUFF) && (tam_leido >0)){
                         // Informamos cual es la utima vez que se lee elarchivo y cual es su extension
@@ -126,10 +128,7 @@ int main(int argc, char *argv[]){
         //strcat(nombre,extension);
         
         // Hay que cambiar permisos despues de crear el archivo
-        
-
-
-        
+           
         if(fd2 == -1){
             fprintf(stderr, "No se ha podido abrir el segundo archivo. Saliendo.\n");
 

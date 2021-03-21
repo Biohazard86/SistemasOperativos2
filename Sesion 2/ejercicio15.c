@@ -27,6 +27,8 @@ y alguna función de conversión de tiempos a cadena como “ctime”).
 #include <sys/mman.h>
 #include <dirent.h>
 
+
+
 // Main
 int main(int argc, char *argv[]){
 

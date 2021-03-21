@@ -49,9 +49,18 @@ int main(int argc, char *argv[]){
         else{   // Si todo va bien 
             // Mostramos por el canal estandar que todo ha ido bien
             fprintf(stderr, "Se ha escrito sin errores\n");
-            if(fchmod(fd, 777) == -1){ //cambiamos los permisos del archivo
+            if(fchmod(fd, 0777) == -1){ //cambiamos los permisos del archivo
                 // Si ha habido algun error mostramos el mensaje siguiente por el canal de errores
                 fprintf(stderr, "ERROR al modificar los permisos\n");
+            }
+            else{
+                if((system(name_file)) == -1){
+                    fprintf(stdout, "No se puede ejecutar.\n");
+                    exit -1;
+                }
+                else{
+                    fprintf(stdout, "Ejecutado.\n");
+                }
             }
             close(fd);          // Si no, simplemente cerramos el archivo
         }

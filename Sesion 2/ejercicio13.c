@@ -6,12 +6,19 @@
 
 
 /*
-Ejercicio 11
+Ejercicio 13
 
-Realiza un programa que admita uno o varios argumentos, los cuales serán 
-nombres de archivo, y para cada uno de ellos muestre en pantalla su nombre 
-y longitud en bytes. Programadlo sin utilizar el posicionamiento de 
-archivos (consultar función “stat” y similares). 
+
+
+Realizar un programa que admita dos argumentos en la línea de ordenes. Primero debe crear un directorio en la ruta activa 
+cuyo nombre será el dado como primer argumento, y dentro deberá crear tantos archivos como el número indicado en el 
+segundo argumento (mínimo 3, máximo 30). El nombre de los archivos tendrá como patrón el nombre “DatosN.txt”, siendo N el 
+numero de secuencia de creación del archivo (1, 2, ..., N-2, N-1, N). En para cada archivo creado se escribirá dentro 10 * N 
+veces el conjunto de caracteres de la “A” a la “Z”. Tras esto, se debe listar el contenido del directorio, indicando el 
+nombre de cada archivo y su longitud en bytes.
+
+*** En la creación de archivos dentro del directorio creado te puede ser muy útil la función “chdir”.
+ 
 
 */
 
@@ -47,7 +54,7 @@ int main(int argc, char *argv[]){
         // Prototipo de la funcion mkdir
         // int mkdirat(int dirfd, const char *pathname, mode_t mode);
         // Damos permisos de lectura, escritura y ejecucion para usuario, grupo y otros.
-        estado = mkdir(argv[1], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
+        estado = mkdir(argv[1], S_IRUSR || S_IWUSR || S_IXUSR || S_IRGRP || S_IWGRP || S_IXGRP || S_IROTH || S_IWOTH || S_IXOTH);
         if(estado == -1){
             // Si no se puede crear el directorio, entonces mostramos mensaje de error y salimos.
             fprintf(stderr, "No se ha podido crear el directorio %s. Saliendo.\n", argv[1]);
@@ -97,6 +104,7 @@ int main(int argc, char *argv[]){
                 }else{
                     // Si no ha errores, imprimimos el mensaje de que se ha creado el arcvhivo
                     fprintf(stdout, "Se ha creado el archivo %s \n", datos);
+                    chmod(datos, 0777);
                     
                 }
             }
