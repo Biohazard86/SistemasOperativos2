@@ -19,7 +19,9 @@ Realizar un programa que al ejecutarse cree 7 procesos hijo, y que cuando los te
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <sys/mman.h>
+#include <time.h>
 #define NUM_PROCESOS_HIJO 7
 
 
@@ -28,11 +30,13 @@ Realizar un programa que al ejecutarse cree 7 procesos hijo, y que cuando los te
 // Main
 int main(int argc, char *argv[]){
 
-    int procesos_hijo_pid[NUM_PROCESOS_HIJO], i, n_random;
     
+
+    int procesos_hijo_pid[NUM_PROCESOS_HIJO], i, n_random, valor_devuelto;
+    pid_t estado;
     
      for(i=0;i<NUM_PROCESOS_HIJO;i++){ 
-        
+        srand(time(NULL)); //Para generar numeros aleatorios
         procesos_hijo_pid[i] = fork();
         if(procesos_hijo_pid[i] == -1){
             fprintf(stderr, "Error al crear el proceso numero %d\n", i);
@@ -50,12 +54,24 @@ int main(int argc, char *argv[]){
                 n_random = rand () % (5-1+1) + 1;   
                 fprintf(stdout, "\tH: Espera %d\n", i+n_random);
                 sleep(i+n_random);
-                return(i+n_random);
-                //break;
+                exit(i+n_random);
+                
             }
             else{
                 // Codigo del padre
+                estado = wait(NULL); /* reaping parent */
+                fprintf(stdout,"P: Soy el padre. \n");
+                fprintf(stdout,"P: Mi PID = %d\n", getpid());
+                fprintf(stdout,"P: PID de mi hijo = %d\n", estado);
+                //fprintf(stdout,"Exit status: %d\n", WEXITSTATUS(estado));
+                if(WIFEXITED(estado) != 0){
+                    fprintf(stdout,"P: El codigo devuelto es:  %d\n", WEXITSTATUS(estado));
+                }else{
+                    fprintf(stdout,"P: Mi hijo no ha terminado de forma correcta. \n");
+ 
+                }
             }
+            fprintf(stdout, "-------------------------\n");
         }
         
     } 
