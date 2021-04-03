@@ -58,7 +58,7 @@ para detectar su terminación y luego hacer otras cosas.
 // Main
 int main(int argc, char *argv[]){
 
-    int procesos=0, segundos=0, i;
+    int procesos=0, segundos=0, i, proceso_hijo, estado;
     char proc[3], seg[3];
 
     switch (argc)
@@ -108,6 +108,26 @@ int main(int argc, char *argv[]){
     }
 
     for(i=0;i<procesos;i++){
+        proceso_hijo = fork();
+
+        if(proceso_hijo == -1){
+            fprintf(stderr, "Error al crear el proceso numero %d\n", i);
+        }else{
+            // Si el proceso hijo tiene un valor 0
+            if(proceso_hijo == 0){
+                // Se ejecuta:
+                sleep(1);
+                exit(1);
+                
+            }
+            else{
+                // Codigo del padre
+                estado = wait(NULL); /* reaping parent */
+
+        
+            }
+            fprintf(stdout, "-------------------------\n");
+        }
 
     }
      
