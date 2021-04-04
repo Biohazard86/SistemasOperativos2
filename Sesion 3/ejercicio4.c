@@ -58,7 +58,7 @@ para detectar su terminación y luego hacer otras cosas.
 // Main
 int main(int argc, char *argv[]){
 
-    int procesos=0, segundos=0, i, proceso_hijo, estado;
+    int procesos=0, segundos=0, i, proceso_hijo, estado, n_random;
     char proc[3], seg[3];
 
     switch (argc)
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]){
         strcpy(seg, argv[2]);
         segundos = atoi(seg);
 
-        if((procesos > 1) && (procesos < 50) && (segundos > 1) && (segundos < 150)){
+        if((procesos >= 1) && (procesos <= 50) && (segundos >= 1) && (segundos <= 150)){
             fprintf(stdout, "---------------------\n");
             fprintf(stdout, "Valores introducidos\n");
             fprintf(stdout, "   PROCESOS %d\n   SEGUNDOS %d\n", procesos, segundos);
@@ -109,21 +109,26 @@ int main(int argc, char *argv[]){
 
     for(i=0;i<procesos;i++){
         proceso_hijo = fork();
+        srand(time(NULL)); //Para generar numeros aleatorios
 
         if(proceso_hijo == -1){
             fprintf(stderr, "Error al crear el proceso numero %d\n", i);
         }else{
             // Si el proceso hijo tiene un valor 0
+            fprintf(stdout, "-------------------------\n");
             if(proceso_hijo == 0){
                 // Se ejecuta:
-                sleep(1);
+                
+                sleep(segundos);
+                n_random = rand () % (15-1+1) + 1; 
+                fprintf(stdout, "Numero random de %d --> %d\n", i, n_random);
                 exit(1);
                 
             }
             else{
                 // Codigo del padre
                 estado = wait(NULL); /* reaping parent */
-
+                fprintf(stdout,"P: El hijo número %d con PID=%d ha terminado. \n", i, getpid());
         
             }
             fprintf(stdout, "-------------------------\n");
