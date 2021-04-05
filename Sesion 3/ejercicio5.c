@@ -42,12 +42,14 @@ como si fueran padres, hijos, nietos, biznietos, ...
 #include <sys/mman.h>
 #include <time.h>
 
+
+// Funcion para crear cada proceso
 int crear_proceso(){
     int proceso;
     
     proceso = fork();
 
-    return proceso;
+    return proceso;     //Retprnamos el valor 
 }
 
 
@@ -88,9 +90,7 @@ int main(int argc, char *argv[]){
                 for(z=0; z<2;z++){
                     p_hijo = crear_proceso();
                 }
-                
-                 
-                
+
                 exit(1);
                 
             }
