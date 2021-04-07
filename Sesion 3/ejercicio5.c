@@ -2,7 +2,7 @@
 // SISTEMAS OPERATIVOS II
 // GIISI
 
-// FUNCIONA, LISTO PARA ENTREGAR
+// FUNCIONA (MAS O MENOS)
 
 
 /*
@@ -42,71 +42,112 @@ como si fueran padres, hijos, nietos, biznietos, ...
 #include <sys/mman.h>
 #include <time.h>
 
+#define FIN_FALLO 1
+#define FIN_EXITO 0
 
-// Funcion para crear cada proceso
-int crear_proceso(){
-    int proceso;
-    
-    proceso = fork();
+// Función que comprueba la validez de los parametros
+int parametros(int *niveles, int *tiempo, int argc, char * argv[])
+{
+    if(argc<3)
+    {
+        fprintf(stderr, "ERROR: Numero de parametros incorrecto\n");
+        return -1;
+    }
 
-    return proceso;     //Retprnamos el valor 
+    *niveles = atoi(argv[1]);
+    *tiempo = atoi(argv[2]);
+
+    if((*niveles < 1) || (*niveles > 5))
+    {
+        fprintf(stderr, "ERROR: el parametro numero de procesos : %d \n", *niveles );
+        return -1;
+    }
+    if((*tiempo < 1) || (*tiempo > 10))
+    {
+        fprintf(stderr, "ERROR: el parametro tiempo : %d \n", *tiempo );
+        return -1;
+    }
+    return 0;
 }
 
+// función que crea dos procesos
+int crea_procesos(int procesos_restantes, int *hijos, int nivel_actual){
+    srand(time(NULL)); //Para generar numeros aleatorios
+    int i=0, tiempo=0, ale=0;
+    
+    // Creamos los procesos hijo
+    hijos[nivel_actual]=fork();
+   
+    if(hijos[nivel_actual]==0)
+    {
+        // Codigo del hijo
 
-
-// Main
-int main(int argc, char *argv[]){
-
-    int niveles, tiempo, p_hijo, estado, i, z;
-    char n[3],t[3];
-
-    if(argc == 3){
-        strcpy(n, argv[1]);
-        niveles = atoi(n);
-
-        strcpy(t, argv[2]);
-        tiempo = atoi(t);
-
-        if((niveles >= 1) && (niveles <= 5) && (tiempo >= 1) && (tiempo <= 10)){
-            fprintf(stdout, "Los datos introducidos son:\nNiveles: %d\nTiempo: %d\n", niveles, tiempo);
-        }
-        else{
-            fprintf(stdout, "Error en el rango de los parametros\n");
-            exit -1;
-        }
-        // Si hemos llegado hasta aqui es que todo esta correcto
-
-        for(i=0;i<niveles;i++){
-        p_hijo = crear_proceso();
-        srand(time(NULL)); //Para generar numeros aleatorios
-
-        if(p_hijo == -1){
-            fprintf(stderr, "Error al crear el proceso numero %d\n", i);
-        }else{
-            // Si el proceso hijo tiene un valor 0
-            fprintf(stdout, "-------------------------\n");
-            if(p_hijo == 0){
-                // Se ejecuta:
-                for(z=0; z<2;z++){
-                    p_hijo = crear_proceso();
-                }
-
-                exit(1);
-                
-            }
-            else{
-                // Codigo del padre
-                estado = wait(NULL); /* reaping parent */
-                fprintf(stdout,"P: El hijo número %d con PID = %d ha terminado. \n", i, getpid());
+        srand(getpid());
+        ale=rand () % (150-1+1) + 1;;
+        printf("Soy el hijo número %d con PID: %d. Hijo de %d.\n",nivel_actual,getpid(), getppid());
+        // dormimos el proceso en función de la posición que tenga
+        sleep(nivel_actual);
         
-            }
-            fprintf(stdout, "-------------------------\n");
+        
+        if(procesos_restantes == nivel_actual){
+            
+            fprintf(stdout, "--------------------------------------\nSe ha llegado al final de la cascada\n--------------------------------------\n");
+            //return 1;
+        }else{
+            crea_procesos(procesos_restantes, hijos, nivel_actual+1);
+        }
+        // Retornamos el valor aleatorio
+        return ale;
+        
+    }
+    else if(hijos[nivel_actual] ==-1)
+    {
+
+        fprintf(stderr, "ERROR: No se han creado los hijos\n");
+    }
+    else
+    {
+        //el padre
+    }
+    
+}
+
+// MAIN
+int main(int argc, char * argv[])
+{
+    int niveles, tiempo, *hijos,i, status, ale, nivel_actual;
+
+    // Comprobamos que los parametros sean correctos
+    if(parametros(&niveles,&tiempo, argc, argv)==-1)
+    {
+        return FIN_FALLO;
+    }
+
+    // Reservamos memoria para los PIDs de los hijos
+    hijos = (int*)malloc(niveles);
+
+    //crear los hijos
+    crea_procesos(niveles, hijos,0);
+
+    sleep(niveles+2);
+    
+    
+    for(i=0; i<=niveles;i++)
+    {
+        printf(" Esperando que acabe el hijo número %d con PID=%d.\n", i, hijos[i] );
+
+        waitpid(hijos[i+1],&status,0);
+
+        if(hijos[i] != 0){
+            if(WIFEXITED(status)==0)
+                printf("\tHijo con PID=%d ha terminado de forma normal. Valor devuelto: %d.\n",hijos[i-1], WEXITSTATUS(status));
+            if(WIFSTOPPED(status)==0)
+                printf("\tHijo con PID=%d se ha detenido. Valor devuelto %d.\n",hijos[i-1], WEXITSTATUS(status));
         }
 
     }
+    
+    return FIN_EXITO;
 
-
-    }
-
-
-}// END MAIN
+}
+//FIN MAIN
