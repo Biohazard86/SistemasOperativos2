@@ -1,5 +1,5 @@
 // David Barrios Portales
-// SISvar_TEMAS OPERAvar_TIVOS II
+// SISTEMAS OPERATIVOS II
 // GIISI
 
 /*
