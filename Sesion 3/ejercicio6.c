@@ -3,16 +3,16 @@
 // GIISI
 
 /*
-Ejercicio 6: Creación de Procesos Variable, Espera ordenada y Valores de Retorno
+Ejercicio 6: Creación de Procesos Variable, Espera p_hijosada y Valores de Retorno
 
 Realiza un programa que reciba dos argumentos obligatorios de tipo numérico, el primero será el número (var_T) 
 de procesos hijo que debe crear, y debe estar comprendido entre 3 y 25, y el segundo será el límite superior 
 (var_L) del rango de cálculo de un valor aleatorio, que debe ser un número mayor o igual a 50. var_Los hijos al ser 
-creados imprimen por pantalla "Soy el hijo número N y mi PID es P.". Donde N será el número de orden del 
+creados imprimen por pantalla "Soy el hijo número N y mi PID es P.". Donde N será el número de p_hijos del 
 hijo en cuestión (de 1 a var_T) y P será su PID. var_Luego esperará (dormirá con sleep) N segundos antes de terminar 
 devolviendo al sistema un valor aleatorio entre 1 y var_L, siendo var_L el valor del segundo argumento recibido. 
 El padre tras haber creado los var_T hijos, esperará a que var_TODOS ellos acaben correctamente antes de terminar, 
-pero lo hará de forma que esperará por la terminación en orden inverso a como se crearon, es decir, deberá 
+pero lo hará de forma que esperará por la terminación en p_hijos inverso a como se crearon, es decir, deberá 
 esperar a que acabe el hijo N, luego el hijo N-1, ..., hasta el hijo 1. Durante la espera, el padre mostrará 
 en pantalla el hijo por el que va a esperar, de la forma "Esperando que acabe el hijo número N con PID=P.", 
 y cuando el hijo termine, mostrará el tipo de terminación, y el valor devuelto por él, de la forma "Hijo con 
@@ -46,7 +46,7 @@ array antes de su finalización.
 // Main
 int main(int argc, char **argv){
 
-    int var_T,var_L,i,cont,status,hijos, *orden,rand_L;
+    int var_T,var_L,i,cont,status,hijos, *p_hijos,rand_L;
     char *ptr, F[20];
     
 
@@ -58,7 +58,7 @@ int main(int argc, char **argv){
 
     var_T = strtol(argv[1],&ptr,10);
     if( *ptr != 0){
-        fprintf(stderr,"Argumentos no validos\n");
+        fprintf(stderr,"ERROR: Argumentos no validos\n");
         return VERDADERO;
     }
     var_L = strtol(argv[2],&ptr,10);
@@ -73,8 +73,7 @@ int main(int argc, char **argv){
     }
 
     // Solicitamos memoria para comenzar
-
-    orden =(int*)malloc(sizeof(int)*var_T);
+    p_hijos =(int*)malloc(sizeof(int)*var_T);
 
     // Vamos creando los procesos hijos
     cont = var_T-1;
@@ -83,26 +82,25 @@ int main(int argc, char **argv){
         hijos=fork();
 
         if(hijos == -1){
-            perror(" ");
+            //perror(" ");
             return VERDADERO;
         }else if(hijos == 0){
 
             srand(getpid());
-            printf("H: Proceso %d PID %d\n",i,getpid());
-            sleep(i);
-            rand_L = rand() %var_L +1;
+            fprintf(stdout,"H: Proceso %d PID %d\n",i,getpid());
+            sleep(i);   // Dormimos el proceso i segundos 
+            rand_L = rand() %var_L +1;  //Generamos el numero aleatorio
             return rand_L;
         }else{
-            orden[i-1] = hijos; // Se guarda en orden inverso
+            p_hijos[i-1] = hijos; // Se guarda de forma inversa
         }
 
     }
     sleep(1);
     for(i=0;i<var_T;i++){
         
-        printf("-------------------------------------------\nP: Esperando el hijo %d PID=%d.\n-------------------------------------------\n",cont+1,orden[cont]);
-        waitpid(orden[cont],&status,0);
-
+        fprintf(stdout,"-------------------------------------------\nP: Esperando el hijo %d PID=%d.\n-------------------------------------------\n",cont+1,p_hijos[cont]);
+        waitpid(p_hijos[cont],&status,0);
 
         // Comprobamos si acaba de forma normal o es finalizado
         if(WIFEXITED(status))
@@ -115,11 +113,10 @@ int main(int argc, char **argv){
             strcpy(F,"ERROR");
         }
 
-        printf("P: Hijo PID: %d ha terminado de forma %s, y ha devuelto el valor %d\n",orden[cont],F,WEXITSTATUS(status));	
+        fprintf(stdout,"P: Hijo PID: %d ha terminado de forma %s, y ha retornado %d\n",p_hijos[cont],F,WEXITSTATUS(status));	
         cont--;// Decrementamos el contador
 
         
     }
-    free(orden);
-
+    free(p_hijos);// Liberamos memoria de los pids de los hijos
 }// END MAIN
