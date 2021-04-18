@@ -70,155 +70,192 @@ Terminado".
 #include <time.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
 
 #define FIN_FALLO 1
 #define FIN_EXITO 0
 
-void manejadora()
-{
-}
 
 // ------------------------------------------------------------------------------------------
-// Funcion para dormir
-int misleep(int espera)
-{
-	int i;
-	sigset_t mascaranueva,mascaravieja;
-	struct sigaction accionNueva, acccionVieja;
 
-	if(sigfillset(&mascaranueva)==-1)
-	{
-		perror("Fallo sigfillset");
-		return FIN_FALLO;
-	}
+int seguir=1;//cualquier número != de 0.Para que no salga del turno
 
-	accionNueva.sa_handler=manejadora;
-	accionNueva.sa_mask=mascaranueva;
-	accionNueva.sa_flags =0;
+//SI SE RECIBE LA SEÑAL SIGINT(para el padre) o SIGTERM(para los hijos), SE SALDRÁ DE LA ESPERA DE TURNO
+void manejadora(int signum){
+    if(signum==SIGINT || signum==SIGTERM)//Si no se añade SIGTERM, cuando los HIJOS la reciban, no saldrán de la espera de turno.
+        seguir=0;
+    
+}
 
-	if(sigaction(SIGALRM, &accionNueva, &acccionVieja)==-1)
-	{
-		perror("Fallo sigaction, accionNueva");
-		return FIN_FALLO;
-	}
-
-
-	if(sigprocmask(SIG_SETMASK,&mascaranueva,&mascaravieja)==-1)
-	{
-		perror("Fallo sigprocmask, mascaranueva");
-		return FIN_FALLO;
-	}
-
-	if(sigdelset(&mascaranueva,SIGALRM)==-1)
-	{
-		perror("Fallo sigdelset");
-		return FIN_FALLO;
-	}
-
-	for(i=espera;i>0;i--)
-	{
-		//printf("%d,",i);
-		alarm(1);
-		sigsuspend(&mascaranueva);
-	}
-	//printf("0\n");
-
-	if(sigaction(SIGALRM, &acccionVieja, NULL)==-1)
-	{
-		perror("Fallo sigaction, acccionVieja ");
-		return FIN_FALLO;
-	}
-
-	if(sigprocmask(SIG_SETMASK,&mascaravieja,NULL)==-1)
-	{
-		perror("Fallo sigprocmask, mascaravieja");
-		return FIN_FALLO;
-	}	
-	return FIN_EXITO;
+//Función turno, recibe PID de proceso anterior al que hace la llamada
+void turno(int pid,int retardo,char letra,int orden){
+    
+    sigset_t mascara;//Se declara la máscara
+    struct timespec espera;//Estructura para tiempo de espera de nanosleep
+    
+    //Se convierte convierte el retardo introducido a nanosegundos
+    espera.tv_nsec=(retardo)*10000000;
+    
+    sigfillset(&mascara); //Se enmascara toda la máscara
+    sigdelset(&mascara,SIGUSR1); //Se desenmascara SIGUSR1...SIGINT sólo sigue enmascarada para los hijos.
+    
+    while(seguir){
+        sigsuspend(&mascara); //Se espera la señal SIGUSR1 ó SIGTERM()
+        fprintf(stdout,"%c%d(%05d) %s.\n",letra,orden,getpid(),"Recibido Testigo");
+        nanosleep(&espera,NULL);
+        kill(pid,SIGUSR1);//Se envía SIGUSR1 al proceso indicado.
+    }
 }
 
 
-//-------------------------------------------------------------------------------------------------------------
 
-
-int main(int argc, char * argv[]){
-
-    int n_hijos, retardo, p1, p2, i;
-
-    int *hijos_pid;
-
-
-
-    // Realizamos la comprobacion de que nos llegan los parametros necesarios.
-    if (argc != 3){
-        // Si el numero de parametros no es 3, entonces salimos del programa ya que necesitamos que sea el nombre del programa y dos argumentos
-        fprintf(stderr,"ERROR en la introduccion de parametros\n");
-        return FIN_FALLO;
-    }
-    // Convertimos los parametros de char a int
-    p1 = atoi(argv[1]);
-    p2 = atoi(argv[2]);
-
-    // Guardamos el valor por defecto por si no entra en ningun condicional
-    n_hijos = 5;
-
-    //Comprobamos si el parametro 1 se corresponde con el de los hijos
-    if((p1 >5) && (p1 < 25)){
-        n_hijos = p1;
-    }
-    // Comprobamos si el segundo parametro se corresponde con el de los hijos
-    if((p2>5) && (p2 < 25)){
-        n_hijos = p2;
-    }
-
-    // Si no recibimos el retardo el p1
-    if((p1 > (-101)) && (p1 < (-1))){
-        retardo = p1;
-    }
-    else{
-        // Ni en P2
-        if((p2 > (-101)) && (p2 < (-1))){
-            retardo = p2;
-        }
-        else{
-            // Finalizamos el programa, ya que es un dato necesario.
-            fprintf(stderr,"ERROR en la introduccion de parametros\n");
-            return FIN_FALLO;
-        }
-    }
-
-
+int main(int argc, char *argv[])
+{
+    int hijos=5,retardo=0,argumento,i,j, *pid, status;
+    struct sigaction accionnueva;
+    sigset_t mascara;//Se declara la máscara para cambiarla
     
-    fprintf(stdout,"HIJOS = %d - RETARDO = %d\n", n_hijos, retardo);
+    //Se comprueba el número de argumentos.
+    if (argc>3) {
+        fprintf(stderr,"Sólo se permiten dos argumentos como máximo");
+    }
+    
+    //Se comprueba si los argumentos son correctos
+    for(i=1;i<argc;i++)
+    {
+        
+        if (argv[i][0]=='-') {
+            for (j=1; argv[i][j]!=NULL; j++) {
+                if (argv[i][j]<'0'||argv[i][j]>'9'){
+                    fprintf(stderr,"ERROR al introducir el argumento de retardo.\n");
+                    return 1;
+                }
+            }
+                retardo=-(atoi(argv[i])+1);//Se guarda retardo
+                //printf("retardo =%d\n",retardo);
+        } else {
+            
+            for (j=0; argv[i][j]!=NULL; j++) {
+                if (argv[i][j]<'0'||argv[i][j]>'9'){
+                    fprintf(stderr,"ERROR al introducir el número de hijos.\n");
+                    return 1;
+                }
+                
 
-    // Resetvamos memoria para los hijos
-    hijos_pid=(int*)malloc(n_hijos);
-    // Vamos a crear todos los hijos.
-    for(i=0;i<n_hijos;i++){
-        hijos_pid[i]=fork();        // Creamos el hijo
-        if(hijos_pid[i] == 0){
-            // Dormimos el proceso hijo.
-            misleep(retardo);
+            }
+            hijos=atoi(argv[i]);//Se guarda el número de hijos a crear
+            //printf("hijos =%d\n",hijos);
 
         }
-        else if(hijos_pid[i]==-1)
-		{
-            // Comprobamos si ha habido un error creando algun hijo
-			fprintf(stderr,"ERROR creando el hijo %d.\n", i);
-			return FIN_FALLO;
-		}
-		else
-		{
-            //fprintf(stdout,"Se ha creado el hijo %d.\n", i);
-		}
+        
+    }//for
+   
+    //getchar();
+    
+    
+    //Se determina cual será función manejadora y la máscara para la nueva acción
+    accionnueva.sa_handler=manejadora;
+    accionnueva.sa_mask=mascara;
+    
+    //Se cambia el comportamiento de las señales SIGUSR1, SIGINT y SIGTERM por el que se defina.
+    if(sigaction(SIGUSR1,&accionnueva,NULL)==-1){
+        perror("ERROR SIGUSR1");
+        return 2;
     }
+    if(sigaction(SIGINT,&accionnueva,NULL)==-1){
+        perror("ERROR SIGINT");
+        return 2;
+    }
+    if(sigaction(SIGTERM,&accionnueva,NULL)==-1){
+        perror("ERROR SIGTERM");
+        return 2;
+    }
+    
+    sigemptyset(&mascara); //Se vacia la máscara.
+    sigaddset(&mascara,SIGUSR1); //SE BLOQUEA SIGUSR1
+    sigaddset(&mascara,SIGINT);	//SE BLOQUEA SIGINT
 
-    // Procedemos a mostrar el mensaje por parte del padre
-    fprintf(stdout,"Avisando Hijos.\n");
-    // Sea visa a los hijos
-    fprintf(stdout,"Esperando Hijos.\n");
-    for(i=0;i<n_hijos;i++){
+    if(sigprocmask(SIG_SETMASK,&mascara,NULL)==-1){ //Se aplica la máscara,de momento, común a Padre e hijos.
+        perror("ERROR estableciendo la máscara..\n");
+        return 3;
+    }
+    
+    //Se reserva memoria para los PID de hijos y padre
+    pid=malloc(sizeof(int)*(hijos+1));
+    pid[0]=getpid();//Se guarda PID del padre
+    
+    
+    
+    //CREACIÓN DE HIJOS
+    for(i=1; i<=hijos; i++){
+        
+        pid[i]=fork();//Se guarda el PID del hijo creado
+       
+        switch(pid[i]){
+            
+            case -1 :
+                
+                perror("ERRROR CREANDO HIJOS");
+                
+                return 2;
+            
+            case 0 : //HIJOS
+            
+                turno(pid[i-1],retardo,'H',i); //LLamada a función turno con el PID del proceso anterior.
+                
+                //Una vez recibida la señal SIGTERM.(enviada por el padre)
+                fprintf(stdout,"%c%d(%05d) %s.\n",'H',i,getpid(),"Finalizado");
+                exit(0);
+            default:
+                
+                
+                break;
+        }//switch
+    }//for
+    
+    
+    
+    
+    //CÓDIGO PADRE
+    sigdelset(&mascara,SIGINT);	//Se desenmascara SIGINT(para el padre)...sólo queda SIGUSR1
+    if(sigprocmask(SIG_SETMASK,&mascara,NULL)==-1){ //Se aplica la nueva máscara y no se guarda para un uso posterior(el NULL)
+        perror("ERROR enmascarando");
+        return 3;
+    }
+    
+    
+    
+    
+    if(kill(pid[hijos],SIGUSR1)==-1){ //Se envía SIGUSR1 al último hijo para que comiencen a pasar el testigo
+        perror("ERROR mandando señal SIGUSR1");
+        return 3;
+    }
+    //ESPERA DE TURNO PADRE
+    turno(pid[hijos],retardo,'P',0); //Se llama a turno para esperar el testigo
+    
+    
+    //AQUÍ el padre YA HA RECIBIDO LA SEÑAL SIGINT
+    fprintf(stdout,"%c%d(%05d) %s.\n",'P',0,getpid(),"Avisando Hijos");
+    
+    for(i=1;i<=hijos;i++){ //MATA A LOS HIJOS
+        
+        kill(pid[i],SIGTERM);
+        //fprintf(stdout,"voy a matar al hijo%d\n",pid[i]);
         
     }
-
+    fprintf(stdout,"%c%d(%05d) %s.\n",'P',0,getpid(),"Esperando Hijos");
+    
+    for(i=1;i<=hijos;i++){ //bucle para esperar por los procesos hijos, si hay un error se indica
+        
+        if(waitpid(pid[i],&status,0)==-1){
+            perror("waitpid");
+        }
+        
+    }
+    
+    
+    fprintf(stdout,"%c%d(%05d) %s.\n",'P',0,getpid(),"Programa Terminado");	
+    
+    
+    return 0;
 }
