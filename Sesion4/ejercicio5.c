@@ -74,6 +74,72 @@ Terminado".
 #define FIN_FALLO 1
 #define FIN_EXITO 0
 
+void manejadora()
+{
+}
+
+// ------------------------------------------------------------------------------------------
+// Funcion para dormir
+int misleep(int espera)
+{
+	int i;
+	sigset_t mascaranueva,mascaravieja;
+	struct sigaction accionNueva, acccionVieja;
+
+	if(sigfillset(&mascaranueva)==-1)
+	{
+		perror("Fallo sigfillset");
+		return FIN_FALLO;
+	}
+
+	accionNueva.sa_handler=manejadora;
+	accionNueva.sa_mask=mascaranueva;
+	accionNueva.sa_flags =0;
+
+	if(sigaction(SIGALRM, &accionNueva, &acccionVieja)==-1)
+	{
+		perror("Fallo sigaction, accionNueva");
+		return FIN_FALLO;
+	}
+
+
+	if(sigprocmask(SIG_SETMASK,&mascaranueva,&mascaravieja)==-1)
+	{
+		perror("Fallo sigprocmask, mascaranueva");
+		return FIN_FALLO;
+	}
+
+	if(sigdelset(&mascaranueva,SIGALRM)==-1)
+	{
+		perror("Fallo sigdelset");
+		return FIN_FALLO;
+	}
+
+	for(i=espera;i>0;i--)
+	{
+		//printf("%d,",i);
+		alarm(1);
+		sigsuspend(&mascaranueva);
+	}
+	//printf("0\n");
+
+	if(sigaction(SIGALRM, &acccionVieja, NULL)==-1)
+	{
+		perror("Fallo sigaction, acccionVieja ");
+		return FIN_FALLO;
+	}
+
+	if(sigprocmask(SIG_SETMASK,&mascaravieja,NULL)==-1)
+	{
+		perror("Fallo sigprocmask, mascaravieja");
+		return FIN_FALLO;
+	}	
+	return FIN_EXITO;
+}
+
+
+//-------------------------------------------------------------------------------------------------------------
+
 
 int main(int argc, char * argv[]){
 
@@ -123,14 +189,36 @@ int main(int argc, char * argv[]){
 
 
     
-    fprintf(stdout,"HIJOS = %d - RETARDO = %d\n", hijos, retardo);
+    fprintf(stdout,"HIJOS = %d - RETARDO = %d\n", n_hijos, retardo);
 
     // Resetvamos memoria para los hijos
     hijos_pid=(int*)malloc(n_hijos);
     // Vamos a crear todos los hijos.
     for(i=0;i<n_hijos;i++){
+        hijos_pid[i]=fork();        // Creamos el hijo
+        if(hijos_pid[i] == 0){
+            // Dormimos el proceso hijo.
+            misleep(retardo);
 
+        }
+        else if(hijos_pid[i]==-1)
+		{
+            // Comprobamos si ha habido un error creando algun hijo
+			fprintf(stderr,"ERROR creando el hijo %d.\n", i);
+			return FIN_FALLO;
+		}
+		else
+		{
+            //fprintf(stdout,"Se ha creado el hijo %d.\n", i);
+		}
     }
 
+    // Procedemos a mostrar el mensaje por parte del padre
+    fprintf(stdout,"Avisando Hijos.\n");
+    // Sea visa a los hijos
+    fprintf(stdout,"Esperando Hijos.\n");
+    for(i=0;i<n_hijos;i++){
+        
+    }
 
 }
