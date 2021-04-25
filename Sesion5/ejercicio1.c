@@ -45,71 +45,26 @@ cuenta que hay que "hacer más cosas" en las operaciones con semáforos, con lo 
 #include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
 
 #define FIN_FALLO 1
 #define FIN_EXITO 0
-/* #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/sem.h> */
+#define N_VECES 1000
 
+// ---------------------------------------------------------
 
-int waitsemaforo(int idsemaforo,int indice);
-int signalsemaforo(int idsemaforo,int indice);
-
-int main(int argc, char *argv[])
-{
-int i,hijo,idsemaforo,returnhijo;    
-
-idsemaforo=semget(IPC_PRIVATE,1,IPC_CREAT|0600); //creamos un semáforo y guardamos su id.
-semctl(idsemaforo,0,SETVAL,1);//damos valor 1 al semáforo.
-hijo= fork();//creamos un hijo. 
-    
-switch (hijo)
-	{
-   case -1:
-		fprintf(stderr, "\nERROR: no se ha creado correctamente el hijo\n");
-			return 1;
-            
-	 case 0: //Hijo
-		for(i=0;i<1000;i++)
-			{
-       waitsemaforo(idsemaforo,0);
-       fprintf(stderr,"X");
-       signalsemaforo(idsemaforo,0);
-      }//for
-		return 0;
-            
-	 default: //Padre
-		for(i=0;i<1000;i++)
-			{
-       waitsemaforo(idsemaforo,0);
-       fprintf(stderr,"O");
-       signalsemaforo(idsemaforo,0);
-      //para imprimir en pantalla hemos utilizado stderr para que se imprima instantáneamente.
-      }//for
-	}//switch case
-    
-
-if(waitpid(hijo,&returnhijo,0)==-1) fprintf(stderr,"ERROR waitpid");
-        
-semctl(idsemaforo, 0, IPC_RMID);//eliminamos el semáforo
-    
-return 0;
-}//Main
-
-int waitsemaforo(int idsemaforo,int indice)
-{
+int waitsemaforo(int idsemaforo,int indice){
+// VARS
 int control=1;
 struct sembuf oper;
         
-oper.sem_num= indice;
-oper.sem_op= -1; // WAIT
-oper.sem_flg= 0;
+oper.sem_num = indice;
+oper.sem_op = -1; // WAIT
+oper.sem_flg = 0;
 
 while ((control==1) || ((control==-1)&& (errno == EINTR)))
 	{
@@ -118,12 +73,14 @@ while ((control==1) || ((control==-1)&& (errno == EINTR)))
 
 if (control== -1)
 	{
-		fprintf(stderr,"\nse ha producido un error al hacer el WAIT del semáforo\n");
+		fprintf(stderr,"ERROR: Se ha producido un error al hacer la funcion wait en el semaforo\n");
 		return -1;
 	}//if
     
 return 0;
 }//waitsemaforo
+
+// ---------------------------------------------------------
 
 int signalsemaforo(int idsemaforo,int indice)
 {
@@ -141,9 +98,62 @@ while ((control==1)|| ((control==-1)&& (errno == EINTR)))
 	
 if (control== -1)
 	{
-		fprintf(stderr,"\nse ha producido un error al hacer el SIGNAL del semáforo\n");
+		fprintf(stderr,"ERROR: Se ha producido un error al hacer la funcion signal en el semaforo\n");
 		return -1;
 	}//if
     
 return 0;
 }//signalsemaforo
+
+
+// ---------------------------------------------------------
+
+int main(int argc, char *argv[])
+{
+	int i,hijo,idsemaforo,returnhijo;    
+
+	//creamos y guardamos el id del semaforo
+	idsemaforo=semget(IPC_PRIVATE,1,IPC_CREAT|0600); 
+	semctl(idsemaforo,0,SETVAL,1);//Damos el valor 1 al sem
+	hijo = fork();	// Creamos el hijo
+		
+	switch (hijo){
+
+	case -1:
+		fprintf(stderr, "ERROR: No se ha podido crear el hijo\n");
+			return 1;	// Si no se ha podido crear el hijo, salimos
+				
+	case 0: //Codigo del hijo
+		// Realizamos el bucle N_VECES
+		for(i=0;i<N_VECES;i++){
+			// Esperamos al semaforo
+			waitsemaforo(idsemaforo,0);
+			// Imprimimos una X (Por ser el hijo)
+			fprintf(stderr,"X");
+			// Enviamos senial al semaforo
+			signalsemaforo(idsemaforo,0);
+		}//for
+		return 0;
+				
+	default: //Codigo del padre
+		// Realizamos el bucle N_VECES
+		for(i=0;i<N_VECES;i++){
+			// Esperamos al semaforo
+			waitsemaforo(idsemaforo,0);
+			// Imprimios una O (Por ser el padre)
+			fprintf(stderr,"O");
+			// Enviamos senial al semaforo
+			signalsemaforo(idsemaforo,0);
+			//para imprimir en pantalla hemos utilizado stderr para que se imprima instantáneamente.
+		}//for
+	}//switch
+		
+
+	if(waitpid(hijo,&returnhijo,0)==-1){
+		fprintf(stderr,"ERROR waitpid");
+	} 
+			
+	semctl(idsemaforo, 0, IPC_RMID);//eliminamos el semáforo
+		
+	return 0;
+}//Main
