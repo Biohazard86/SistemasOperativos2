@@ -99,21 +99,25 @@ struct timespec esperar;
 
 //Primero realizamos el control de errores
 if(argc!=3){
+	// Si el numero de parametros no es correcto
 	 fprintf(stderr,"ERROR al introducir los argumentos.\n");
 	 return 1;
 	}//if
 else{
+	// Si es correcto, entonces guardamos los parametros
 	 hijos=atoi(argv[1]);
 	 retardo=atoi(argv[2]);
 	}//else
 
 if(hijos<1||hijos>100){
+	// Si los hijos estan fuera del rango
 	 fprintf(stderr,"ERROR. El primer argumento tiene que estar comprendido entre 1 y 100.\n");
 	 return 1;
 	}
 
 if(retardo<0||retardo>10)
 	{
+	// Si el retardo esta fuera del rango
 	 fprintf(stderr,"ERROR. El segundo argumento tiene que estar comprendido entre 1 y 10.\n");
 	 return 1;
 	}
@@ -196,24 +200,4 @@ semctl(idsemaforo, 0, IPC_RMID);//eliminamos el semáforo
 fprintf(stdout,"\nprograma terminado, el tiempo de espera guardado en los bloques de memoria compartida ha sumado %d. \n",sumavalores);
 return 0;
 }//main
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
