@@ -2,6 +2,9 @@
 // SISTEMAS OPERATIVOS II
 // GIISI
 
+
+// FUNCIONA 
+
 /*
 Sesion 6
 
