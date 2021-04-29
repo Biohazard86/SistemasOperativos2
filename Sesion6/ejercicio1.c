@@ -42,29 +42,27 @@ espera resultante se guardará en la memoria compartida, en el byte correspondie
 
 //-----------------------------------------------------------------------------------------------------
 // Funcion para esperar el semaforo (Funciones reutilizadas)
-int waitsemaforo(int idsemaforo,int indice)
-{
+int waitsemaforo(int idsemaforo,int indice){
 int control=1;	// Variable de control
-struct sembuf oper;
-        
+struct sembuf oper;    
 oper.sem_num= indice;
 oper.sem_op= -1; // WAIT
 oper.sem_flg= 0;
 
 while ((control==1) || ((control==-1)&& (errno == EINTR))){
-	 control = semop(idsemaforo, &oper, 1);
+	control = semop(idsemaforo, &oper, 1);
 }
-
+// Si control es igual a 1, eso quiere decir que se ha producido un arror, mostramos el mensaje por el canal de errores
 if (control== -1){
-		fprintf(stderr,"ERROR: Se ha producido un error al hacer la funcion wait en el semaforo\n");
-		return -1;
+	fprintf(stderr,"ERROR: Se ha producido un error al hacer la funcion wait en el semaforo\n");
+	return -1;
 }//if
     
 return 0;
-}//waitsemaforo
+}//FIN waitsemaforo
 
 //-----------------------------------------------------------------------------------------------------
-
+//(Funci'on reutilizada)
 int signalsemaforo(int idsemaforo,int indice)
 {
 int control=1;		// variable de control
@@ -74,21 +72,20 @@ oper.sem_num= indice;
 oper.sem_op= 1;// SIGNAL 
 oper.sem_flg= 0;
 
-while ((control==1)|| ((control==-1)&& (errno == EINTR)))
-	{
-	 control = semop(idsemaforo, &oper, 1);
-	}
+while ((control==1)|| ((control==-1)&& (errno == EINTR))){
+	control = semop(idsemaforo, &oper, 1);
+}
 	
-if (control== -1)
-	{
-		fprintf(stderr,"ERROR: Se ha producido un error al hacer la funcion signal en el semaforo\n");
-		return -1;
-	}//if
+if (control== -1){
+	fprintf(stderr,"ERROR: Se ha producido un error al hacer la funcion signal en el semaforo\n");
+	return -1;
+}//if
     
 return 0;
-}//signalsemaforo
+}//FIN signalsemaforo
 
 
+// FUNCION MAIN
 int main (int argc ,char *argv[] ){
 //Variables usadas	
 int hijos,retardo,idmemoria,idsemaforo,i,hijo,returnhijo,espera,aleatorio,sumavalores=0;
@@ -124,7 +121,7 @@ if(retardo<0||retardo>10)
 
 // Aqui ya se ha varificado que los datos introducidos son correctos
 
-pids=malloc(sizeof (int)*hijos+1);//Se reserva memoria dinámica para guardar los PID de los hijos.
+pids=malloc(sizeof (int)*hijos+1);//Se reserva memoria dinamica para guardar los PIDs
 pids[0]=getpid();
 
 idmemoria= shmget( IPC_PRIVATE,sizeof(int)*hijos, IPC_CREAT | 0600);//reservamos el bloque de memoria compartida
@@ -133,71 +130,66 @@ dirmem = shmat(idmemoria,NULL,0);// id memoria compartida , null , 0
 
 memset (dirmem,0,hijos);// pasar puntero dirección de memoria. no concuerda 
 
+// Recorremos todos los hijos
 for(i=0;i<hijos;i++)
 {
-fprintf(stdout,"\nposicion %d del array compartido,valor %d \n\n",i,dirmem[i]);//comprobamos que todos los espacios del array de la memoria compartida han tomado valor 0.
+fprintf(stdout,"\nPosicion %d del array compartido - valor %d \n\n",i,dirmem[i]);//comprobamos que todos los espacios del array de la memoria compartida han tomado valor 0.
 }
 
-idsemaforo = semget(IPC_PRIVATE,hijos+1,IPC_CREAT|0600); //creamos el conjunto de semáforos y guardamos su id.
-for (i=0;i<=hijos;i++)  semctl(idsemaforo,i,SETVAL,0);//damos valor 0 a los semaforos 
+idsemaforo = semget(IPC_PRIVATE,hijos+1,IPC_CREAT|0600);    //creamos los semadoros y guardamos su ID.
+for (i=0;i<=hijos;i++)  semctl(idsemaforo,i,SETVAL,0);      //damos valor 0 a los semaforos 
 
-for(i=1;i<=hijos;i++)
-	{
+// Recorremos con un FOR
+for(i=1;i<=hijos;i++){
 	
 	hijo= fork();//creamos un hijo. 
+	aleatorio=(rand()%5+1); // Damos un tiempo aleatorio 
 
-	aleatorio=(rand()%5+1);
-
-	switch (hijo)
-		{
-	   case -1:
-			fprintf(stderr, "\nERROR: no se ha creado correctamente el hijo\n");
+	switch (hijo){
+	    case -1:
+		    fprintf(stderr, "\nERROR: no se ha creado correctamente el hijo\n");
 			free (pids);//Se libera la memoria
-				return 1;
+			return 1;
             
-		 case 0: //Hijo
+		case 0: //Hijo
 
-			fprintf(stdout,"hijo número %d con pid (%05d) ejecutándose.\n",i,getpid());
-
-
-		  espera= retardo * aleatorio;// factor de retardo por numero aleatorio entre 1 y 5
+		    fprintf(stdout,"Hijo n: %d con pid (%05d) ejecutandose.\n",i,getpid());
+            espera= retardo * aleatorio;// factor de retardo por numero aleatorio entre 1 y 5
 
 			dirmem[i-1]=espera;
-
-		  waitsemaforo(idsemaforo,i);//dejamos esperando el hijo hasta que le demos el signal
+            waitsemaforo(idsemaforo,i);//dejamos esperando el hijo hasta que le demos el signal
  
-      fprintf(stdout,"Hijo número %d con pid (%05d) terminado.\n",i,getpid());
+            fprintf(stdout,"  ->Hijo n: %d con pid (%05d) terminado.\n",i,getpid());
 			return 0;
 
-	   break;
+	    break;
          
-		 default: //Padre
-			pids[i]=hijo;//Se guarda el valor devuelto por el hijo en el array de pid. 
-		}//switch case
-	}//for    
+		default: //Padre
+		pids[i]=hijo;//Se guarda el valor devuelto por el hijo en el array de pid. 
+	}//switch
+}//for    
 
 sleep(1);//para que le de tiempo a crear los hijos antes de empezar a esperar.
 
-for(i=hijos;i>0;i--)
-	{
-   printf("\nEsperando que acabe el hijo número %d con PID=%d\n",i,pids[i]);
-	 fprintf(stdout,"tardará %d segundos\n",dirmem[i-1]);
-	 if(i != 0) 
+for(i=hijos;i>0;i--){
+    printf("\nEsperando a que finalice el proceso %d con PID = %d\n",i,pids[i]);
+	fprintf(stdout,"  ->Va a tardar %d segundos\n",dirmem[i-1]);
+	if(i != 0) 
 		{	
 			sumavalores=sumavalores+dirmem[i-1];		
 			signalsemaforo(idsemaforo,i);
 	 		sleep(dirmem[i-1]);//para que espere el tiempo que debe antes de terminar. 
 		}
    else signalsemaforo(idsemaforo,0);
-	}
+}
 
-fprintf(stdout,"\nliberando memoria y cerrando semáforos.\n");
+fprintf(stdout,"\nSe procede a liberar memoria y cerrar semaforos.\n");
 
 shmctl( idmemoria, IPC_RMID, NULL);//eliminamos la memoria compartida
 
 semctl(idsemaforo, 0, IPC_RMID);//eliminamos el semáforo
 
-fprintf(stdout,"\nprograma terminado, el tiempo de espera guardado en los bloques de memoria compartida ha sumado %d. \n",sumavalores);
+fprintf(stdout,"\nTiempo de total %d. \n",sumavalores);
 return 0;
-}//main
+}// FIN main
 
