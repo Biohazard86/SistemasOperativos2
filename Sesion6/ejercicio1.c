@@ -2,9 +2,6 @@
 // SISTEMAS OPERATIVOS II
 // GIISI
 
-
-// FUNCIONA 
-
 /*
 Sesion 6
 
@@ -100,7 +97,7 @@ struct timespec esperar;
 //Primero realizamos el control de errores
 if(argc!=3){
 	// Si el numero de parametros no es correcto
-	 fprintf(stderr,"ERROR al introducir los argumentos.\n");
+	 fprintf(stderr,"ERROR al introducir los argumentos.\n Se necesitan 2, el primero para el numero de procesos y el segundo para el retardo\n");
 	 return 1;
 	}//if
 else{
